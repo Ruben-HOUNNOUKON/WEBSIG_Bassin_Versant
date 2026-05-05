@@ -5,6 +5,8 @@ import plotly.graph_objects as go
 import os
 import json
 
+os.environ['LOCALTILESERVER_CLIENT_PREFIX'] = 'proxy/8501'
+
 # 1. Configuration (Design conservé)
 st.set_page_config(
     page_title="WebSIG Premium | Bassin Versant",
