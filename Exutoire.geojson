@@ -1,0 +1,8 @@
+{
+"type": "FeatureCollection",
+"name": "Exutoire",
+"crs": { "type": "name", "properties": { "name": "urn:ogc:def:crs:EPSG::32631" } },
+"features": [
+{ "type": "Feature", "properties": { "Id": 0 }, "geometry": { "type": "Point", "coordinates": [ 419847.288697364157997, 1013055.148795039742254 ] } }
+]
+}
