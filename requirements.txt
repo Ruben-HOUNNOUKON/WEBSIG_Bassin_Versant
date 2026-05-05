@@ -3,4 +3,4 @@ leafmap
 folium
 plotly
 rasterio
-local-tileserver
+localtileserver
