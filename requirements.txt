@@ -1,6 +1,8 @@
 streamlit
 leafmap
-folium
+localtileserver
 plotly
 rasterio
-localtileserver
+rioxarray
+xarray
+scipy
