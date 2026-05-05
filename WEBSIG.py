@@ -5,7 +5,14 @@ import plotly.graph_objects as go
 import os
 import json
 
-os.environ['LOCALTILESERVER_CLIENT_PREFIX'] = 'proxy/8501'
+# Cette condition vérifie si on est sur le Web ou en Local
+if 'STREAMLIT_RUNTIME__IS_RELEASE' in os.environ:
+    # On est sur le Web (GitHub/Streamlit Cloud) -> On met le proxy
+    os.environ['LOCALTILESERVER_CLIENT_PREFIX'] = 'proxy/8501'
+else:
+    # On est en local sur ton PC -> On ne met rien
+    if 'LOCALTILESERVER_CLIENT_PREFIX' in os.environ:
+        del os.environ['LOCALTILESERVER_CLIENT_PREFIX']
 
 # 1. Configuration (Design conservé)
 st.set_page_config(
