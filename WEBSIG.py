@@ -72,14 +72,23 @@ with col_map:
     # Couleurs : Bleu (bas), Vert, Jaune, Marron (haut)
     palette_bv = ['#3333ff', '#32CD32', '#FFFF00', '#8B4513']
 
-    # --- RENDU RASTER ---
-    if os.path.exists("Hillshade.tif"):
-        m.add_raster("Hillshade.tif", layer_name="Ombrage (Hillshade)", opacity=alpha_hill)
+    # --- RENDU RASTER (OPTIMISÉ POUR LE WEB) ---
+    # URL de base de ton dépôt (Remplace par ton nom d'utilisateur si différent)
+    repo_url = "https://raw.githubusercontent.com/Ruben-HOUNNOUKON/WEBSIG_Bassin_Versant/main/"
 
-    if os.path.exists("Dem.tif"):
-        # Application de la palette identique au raster et à la légende
-        m.add_raster("Dem.tif", palette=palette_bv, vmin=150, vmax=600, layer_name="Altitude (DEM)", opacity=alpha_dem)
+    # On définit les chemins : URL pour le Web, chemin local pour ton PC
+    hillshade_path = repo_url + "Hillshade.tif" if 'STREAMLIT_RUNTIME__IS_RELEASE' in os.environ else "Hillshade.tif"
+    dem_path = repo_url + "Dem.tif" if 'STREAMLIT_RUNTIME__IS_RELEASE' in os.environ else "Dem.tif"
+
+    try:
+        m.add_raster(hillshade_path, layer_name="Ombrage (Hillshade)", opacity=alpha_hill)
+        
+        m.add_raster(dem_path, palette=palette_bv, vmin=150, vmax=600, 
+                     layer_name="Altitude (DEM)", opacity=alpha_dem)
+        
         m.add_colorbar(colors=palette_bv, vmin=150, vmax=600, label="Altitude (m)")
+    except Exception as e:
+        st.error(f"Erreur de chargement des rasters : {e}")
         
     # --- SYMBOLOGIE DES RIVIÈRES ---
     def style_rivieres(feature):
