@@ -5,24 +5,14 @@ import plotly.graph_objects as go
 import os
 import json
 
-# --- CORRECTION : GESTION DYNAMIQUE DU PROXY POUR LE WEB ---
-if 'STREAMLIT_RUNTIME__IS_RELEASE' in os.environ:
-    # Sur le Web, on récupère dynamiquement le port du serveur Streamlit
-    port = st.get_option("server.port")
-    os.environ['LOCALTILESERVER_CLIENT_PREFIX'] = f'proxy/{port}'
-else:
-    # En local, on s'assure qu'aucun proxy ne bloque l'affichage
-    if 'LOCALTILESERVER_CLIENT_PREFIX' in os.environ:
-        del os.environ['LOCALTILESERVER_CLIENT_PREFIX']
-
-# 1. Configuration (Design conservé)
+# 1. Configuration
 st.set_page_config(
     page_title="WebSIG Premium | Bassin Versant",
     page_icon="📡",
     layout="wide"
 )
 
-# 2. Design CSS (Strictement inchangé)
+# 2. Design CSS
 st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600&family=Roboto:wght@300;400&display=swap');
@@ -53,9 +43,9 @@ st.markdown("##### *Analyse morphométrique et modélisation du bassin versant d
 
 # Ligne de KPIs
 k1, k2, k3, k4 = st.columns(4)
-k1.metric("SUPERFICIE", "10 445 km²", "SUPERFICIE:10445 km²")
-k2.metric("PÉRIMÈTRE", "530,2 km", "PÉRIMÈTRE : 530,2 km")
-k3.metric("ORDRE STRAHLER", "5", "ORDRE DU RESEAU : 5")
+k1.metric("SUPERFICIE", "10 445 km²", "10445 km²")
+k2.metric("PÉRIMÈTRE", "530,2 km", "530,2 km")
+k3.metric("ORDRE STRAHLER", "5", "ORDRE : 5")
 k4.metric("PRECISION MNT", "30m", "SRTM : 30m")
 
 st.markdown("---")
@@ -66,49 +56,37 @@ col_map, col_stats = st.columns([2, 1])
 with col_map:
     st.subheader("🗺️ Exploration Spatiale")
     
+    # On initialise la carte
     m = leafmap.Map(center=[9.68, 2.05], zoom=10) 
     m.add_basemap(basemap_choice)
 
-    # --- DEFINITION DE LA PALETTE COMMUNE ---
+    # Palette
     palette_bv = ['#3333ff', '#32CD32', '#FFFF00', '#8B4513']
 
-    # --- RENDU RASTER (CORRIGÉ POUR CHARGEMENT RELATIF) ---
-    # On utilise os.path.abspath pour être sûr que le serveur trouve le fichier
-    hillshade_file = os.path.abspath("Hillshade.tif")
-    dem_file = os.path.abspath("Dem.tif")
-
-    if os.path.exists(hillshade_file):
-        m.add_raster(hillshade_file, layer_name="Ombrage (Hillshade)", opacity=alpha_hill)
-
-    if os.path.exists(dem_file):
-        m.add_raster(dem_file, palette=palette_bv, vmin=150, vmax=600, layer_name="Altitude (DEM)", opacity=alpha_dem)
-        m.add_colorbar(colors=palette_bv, vmin=150, vmax=600, label="Altitude (m)")
-        
-    # --- SYMBOLOGIE DES RIVIÈRES ---
-    def style_rivieres(feature):
-        ordre = feature['properties'].get('ordre', feature['properties'].get('ORDRE', 1))
-        return {'color': '#0077b6', 'weight': (ordre * 1.5), 'opacity': 0.8}
-
-    if os.path.exists("Reseau_hydrographique.geojson"):
-        m.add_geojson("Reseau_hydrographique.geojson", layer_name="Hydrographie", style_callback=style_rivieres)
+    # --- RENDU RASTER (MÉTHODE COMPATIBILITÉ WEB FORCÉE) ---
+    # On utilise l'URL GitHub Raw pour bypasser le serveur local
+    repo_url = "https://raw.githubusercontent.com/Ruben-HOUNNOUKON/WEBSIG_Bassin_Versant/main/"
     
-    # --- SYMBOLOGIE EXUTOIRE ---
-    if os.path.exists("Exutoire.geojson"):
-        try:
-            with open("Exutoire.geojson") as f:
-                gj = json.load(f)
-                coords = gj['features'][0]['geometry']['coordinates']
-                m.add_circle_marker(
-                    location=[coords[1], coords[0]], 
-                    radius=10, 
-                    color="black", 
-                    fill_color="#ff6600", 
-                    fill_opacity=1, 
-                    weight=3, 
-                    layer_name="Exutoire"
-                )
-        except Exception:
-            m.add_geojson("Exutoire.geojson", layer_name="Exutoire")
+    try:
+        # Hillshade
+        m.add_raster(repo_url + "Hillshade.tif", layer_name="Ombrage (Hillshade)", opacity=alpha_hill)
+        
+        # DEM
+        m.add_raster(repo_url + "Dem.tif", palette=palette_bv, vmin=150, vmax=600, 
+                     layer_name="Altitude (DEM)", opacity=alpha_dem)
+        
+        m.add_colorbar(colors=palette_bv, vmin=150, vmax=600, label="Altitude (m)")
+    except Exception as e:
+        # Fallback local si l'URL échoue
+        if os.path.exists("Hillshade.tif"):
+            m.add_raster("Hillshade.tif", layer_name="Ombrage (Hillshade)", opacity=alpha_hill)
+        if os.path.exists("Dem.tif"):
+            m.add_raster("Dem.tif", palette=palette_bv, vmin=150, vmax=600, layer_name="Altitude (DEM)", opacity=alpha_dem)
+
+    # --- VECTEURS (Légers, donc pas de soucis) ---
+    if os.path.exists("Reseau_hydrographique.geojson"):
+        m.add_geojson("Reseau_hydrographique.geojson", layer_name="Hydrographie", 
+                      style={'color': '#0077b6', 'weight': 2})
     
     if os.path.exists("Bassin.geojson"):
         m.add_geojson("Bassin.geojson", layer_name="Limite", 
@@ -119,22 +97,10 @@ with col_map:
 with col_stats:
     st.subheader("📊 Analytics")
     data_strahler = {'Ordre': ['1', '2', '3', '4', '5'], 'Densité': [55, 25, 12, 5, 3]}
-    fig_bar = px.bar(data_strahler, x='Ordre', y='Densité', 
-                     title="Répartition du Réseau (%)", 
-                     color='Densité', color_continuous_scale='Blues')
-    
-    fig_bar.update_layout(
-        showlegend=False, 
-        height=300, 
-        paper_bgcolor='rgba(0,0,0,0)', 
-        plot_bgcolor='rgba(0,0,0,0)',
-        xaxis={'type': 'category'}
-    )
-    
+    fig_bar = px.bar(data_strahler, x='Ordre', y='Densité', title="Répartition du Réseau (%)", color='Densité')
     st.plotly_chart(fig_bar, use_container_width=True)
 
     fig_pie = go.Figure(data=[go.Pie(labels=['Bassin', 'Zones Inondables', 'Zones Stables'], values=[10445, 1200, 9245], hole=.6)])
-    fig_pie.update_layout(title="Occupation du Sol (Estimé)", height=300, showlegend=False)
     st.plotly_chart(fig_pie, use_container_width=True)
 
 # --- FOOTER ---
