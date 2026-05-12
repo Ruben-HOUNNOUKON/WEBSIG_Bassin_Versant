@@ -86,16 +86,21 @@ with col_map:
     # Couleurs : Bleu (bas), Vert, Jaune, Marron (haut)
     palette_bv = ['#3333ff', '#32CD32', '#FFFF00', '#8B4513']
 
-   # --- RENDU RASTER FINAL ---
-    # On utilise l'URL de test stable pour valider le serveur
-    test_url = "https://github.com/opengeos/datasets/releases/download/raster/srtm90.tif"
-
+   # --- RENDU RASTER HILLSHADE (URL distante Google Drive) ---
+    # ✅ Remplace l'ancien bloc : if os.path.exists("Hillshade.tif")
     try:
-        # Forcer le rendu via folium pour plus de stabilité sur le Cloud
-        m.add_raster(test_url, palette="terrain", layer_name="Test Relief")
-        st.success("✅ Si le serveur est prêt, le relief apparaît maintenant.")
+        m.add_raster(HILLSHADE_URL, layer_name="Ombrage (Hillshade)", opacity=alpha_hill)
     except Exception as e:
-        st.error(f"Erreur de rendu : {e}")
+        st.warning(f"⚠️ Hillshade non chargé : {e}")
+
+    # --- RENDU RASTER DEM (URL distante Google Drive) ---
+    # ✅ Remplace l'ancien bloc : if os.path.exists("Dem.tif")
+    try:
+        m.add_raster(DEM_URL, palette=palette_bv, vmin=150, vmax=600,
+                     layer_name="Altitude (DEM)", opacity=alpha_dem)
+        m.add_colorbar(colors=palette_bv, vmin=150, vmax=600, label="Altitude (m)")
+    except Exception as e:
+        st.warning(f"⚠️ DEM non chargé : {e}")
 
     # --- SYMBOLOGIE DES RIVIÈRES (inchangé — GeoJSON reste dans le repo GitHub) ---
     def style_rivieres(feature):
