@@ -86,20 +86,16 @@ with col_map:
     # Couleurs : Bleu (bas), Vert, Jaune, Marron (haut)
     palette_bv = ['#3333ff', '#32CD32', '#FFFF00', '#8B4513']
 
-   # --- DIAGNOSTIC RADICAL ---
-    st.sidebar.subheader("État du Système")
+   # --- RENDU RASTER FINAL ---
+    # On utilise l'URL de test stable pour valider le serveur
     test_url = "https://github.com/opengeos/datasets/releases/download/raster/srtm90.tif"
 
     try:
-        import xarray
-        import rioxarray
-        st.sidebar.success("✅ Moteurs raster (xarray) prêts")
-        
-        # Test d'affichage
+        # Forcer le rendu via folium pour plus de stabilité sur le Cloud
         m.add_raster(test_url, palette="terrain", layer_name="Test Relief")
-        st.info("Tentative d'affichage du raster de test en cours...")
+        st.success("✅ Si le serveur est prêt, le relief apparaît maintenant.")
     except Exception as e:
-        st.sidebar.error(f"❌ Erreur système : {e}")
+        st.error(f"Erreur de rendu : {e}")
 
     # --- SYMBOLOGIE DES RIVIÈRES (inchangé — GeoJSON reste dans le repo GitHub) ---
     def style_rivieres(feature):
