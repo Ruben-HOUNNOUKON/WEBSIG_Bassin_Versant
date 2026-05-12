@@ -5,12 +5,13 @@ import plotly.graph_objects as go
 import os
 import json
 
-# Cette condition vérifie si on est sur le Web ou en Local
+# --- CORRECTION : GESTION DYNAMIQUE DU PROXY POUR LE WEB ---
 if 'STREAMLIT_RUNTIME__IS_RELEASE' in os.environ:
-    # On est sur le Web (GitHub/Streamlit Cloud) -> On met le proxy
-    os.environ['LOCALTILESERVER_CLIENT_PREFIX'] = 'proxy/8501'
+    # Sur le Web, on récupère dynamiquement le port du serveur Streamlit
+    port = st.get_option("server.port")
+    os.environ['LOCALTILESERVER_CLIENT_PREFIX'] = f'proxy/{port}'
 else:
-    # On est en local sur ton PC -> On ne met rien
+    # En local, on s'assure qu'aucun proxy ne bloque l'affichage
     if 'LOCALTILESERVER_CLIENT_PREFIX' in os.environ:
         del os.environ['LOCALTILESERVER_CLIENT_PREFIX']
 
@@ -69,26 +70,19 @@ with col_map:
     m.add_basemap(basemap_choice)
 
     # --- DEFINITION DE LA PALETTE COMMUNE ---
-    # Couleurs : Bleu (bas), Vert, Jaune, Marron (haut)
     palette_bv = ['#3333ff', '#32CD32', '#FFFF00', '#8B4513']
 
-    # --- RENDU RASTER (OPTIMISÉ POUR LE WEB) ---
-    # URL de base de ton dépôt (Remplace par ton nom d'utilisateur si différent)
-    repo_url = "https://raw.githubusercontent.com/Ruben-HOUNNOUKON/WEBSIG_Bassin_Versant/main/"
+    # --- RENDU RASTER (CORRIGÉ POUR CHARGEMENT RELATIF) ---
+    # On utilise os.path.abspath pour être sûr que le serveur trouve le fichier
+    hillshade_file = os.path.abspath("Hillshade.tif")
+    dem_file = os.path.abspath("Dem.tif")
 
-    # On définit les chemins : URL pour le Web, chemin local pour ton PC
-    hillshade_path = repo_url + "Hillshade.tif" if 'STREAMLIT_RUNTIME__IS_RELEASE' in os.environ else "Hillshade.tif"
-    dem_path = repo_url + "Dem.tif" if 'STREAMLIT_RUNTIME__IS_RELEASE' in os.environ else "Dem.tif"
+    if os.path.exists(hillshade_file):
+        m.add_raster(hillshade_file, layer_name="Ombrage (Hillshade)", opacity=alpha_hill)
 
-    try:
-        m.add_raster(hillshade_path, layer_name="Ombrage (Hillshade)", opacity=alpha_hill)
-        
-        m.add_raster(dem_path, palette=palette_bv, vmin=150, vmax=600, 
-                     layer_name="Altitude (DEM)", opacity=alpha_dem)
-        
+    if os.path.exists(dem_file):
+        m.add_raster(dem_file, palette=palette_bv, vmin=150, vmax=600, layer_name="Altitude (DEM)", opacity=alpha_dem)
         m.add_colorbar(colors=palette_bv, vmin=150, vmax=600, label="Altitude (m)")
-    except Exception as e:
-        st.error(f"Erreur de chargement des rasters : {e}")
         
     # --- SYMBOLOGIE DES RIVIÈRES ---
     def style_rivieres(feature):
@@ -98,14 +92,12 @@ with col_map:
     if os.path.exists("Reseau_hydrographique.geojson"):
         m.add_geojson("Reseau_hydrographique.geojson", layer_name="Hydrographie", style_callback=style_rivieres)
     
-    # --- SYMBOLOGIE EXUTOIRE (CERCLE ORANGE À CONTOUR NOIR) ---
+    # --- SYMBOLOGIE EXUTOIRE ---
     if os.path.exists("Exutoire.geojson"):
         try:
             with open("Exutoire.geojson") as f:
                 gj = json.load(f)
-                # On récupère les coordonnées du premier point
                 coords = gj['features'][0]['geometry']['coordinates']
-                # Ajout direct en tant que cercle pour éviter l'icône bleue
                 m.add_circle_marker(
                     location=[coords[1], coords[0]], 
                     radius=10, 
@@ -116,7 +108,6 @@ with col_map:
                     layer_name="Exutoire"
                 )
         except Exception:
-            # Fallback si le fichier est vide ou mal formé
             m.add_geojson("Exutoire.geojson", layer_name="Exutoire")
     
     if os.path.exists("Bassin.geojson"):
@@ -132,13 +123,12 @@ with col_stats:
                      title="Répartition du Réseau (%)", 
                      color='Densité', color_continuous_scale='Blues')
     
-    # MODIFICATION ICI : On force l'affichage de toutes les étiquettes
     fig_bar.update_layout(
         showlegend=False, 
         height=300, 
         paper_bgcolor='rgba(0,0,0,0)', 
         plot_bgcolor='rgba(0,0,0,0)',
-        xaxis={'type': 'category'} # Force l'affichage de 1, 2, 3, 4, 5
+        xaxis={'type': 'category'}
     )
     
     st.plotly_chart(fig_bar, use_container_width=True)
