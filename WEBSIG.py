@@ -40,8 +40,8 @@ st.markdown("""
 # IMPORTANT : Tes fichiers doivent être au format COG (.tif converti, voir instructions)
 # ==============================================================================
 
-HILLSHADE_GDRIVE_ID = "HTjXuk3gJ5D1-gJBngbPp2-J5j1G18RG"   # ← colle l'ID ici
-DEM_GDRIVE_ID       = "FF7pFf8Kzbx46JxJVN3z3zfxSrER0a8V"          # ← colle l'ID ici
+HILLSHADE_GDRIVE_ID = "1HTjXuk3gJ5D1-gJBngbPp2-J5j1G18RG"   # ← colle l'ID ici
+DEM_GDRIVE_ID       = "1FF7pFf8Kzbx46JxJVN3z3zfxSrER0a8V"          # ← colle l'ID ici
 
 # Construction automatique des URLs (ne pas modifier cette ligne)
 HILLSHADE_URL = f"https://drive.google.com/uc?export=download&id={HILLSHADE_GDRIVE_ID}"
